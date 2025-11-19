@@ -49,6 +49,18 @@ func main() {
 }
 ```
 
+### Key Persistence
+
+You can save and load keys using standard PEM encoding:
+
+```go
+// Save keys to disk
+err := alice.Save("alice.pem")
+
+// Load keys from disk
+aliceLoaded, err := keys.Load("alice.pem")
+```
+
 ### Authenticated Encryption
 
 ```go
