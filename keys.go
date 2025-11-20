@@ -1,4 +1,4 @@
-package keys
+package e2ee
 
 import (
 	"crypto/ecdh"

@@ -1,9 +1,9 @@
 // Package e2ee provides primitives for building End-to-End Encryption applications.
 //
 // It offers a high-level API for:
-//   - Key Generation (Identity/Ed25519, Exchange/X25519) via the "keys" package.
-//   - Authenticated Encryption (Sign-then-Encrypt with XChaCha20-Poly1305) via the "box" package.
-//   - Digital Signatures (Ed25519) via the "box" package.
+//   - Key Generation (Identity/Ed25519, Exchange/X25519)
+//   - Authenticated Encryption (Sign-then-Encrypt with XChaCha20-Poly1305)
+//   - Digital Signatures (Ed25519)
 //
 // This library aims to provide secure defaults and easy-to-use interfaces,
 // avoiding common cryptographic pitfalls.

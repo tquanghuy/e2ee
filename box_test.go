@@ -1,16 +1,14 @@
-package box
+package e2ee
 
 import (
 	"bytes"
 	"strings"
 	"testing"
-
-	"github.com/tquanghuy/e2ee/keys"
 )
 
 func TestEncryptDecrypt(t *testing.T) {
-	alice, _ := keys.Generate()
-	bob, _ := keys.Generate()
+	alice, _ := Generate()
+	bob, _ := Generate()
 
 	tests := []struct {
 		name    string
@@ -42,8 +40,8 @@ func TestEncryptDecrypt(t *testing.T) {
 }
 
 func TestDecryptErrors(t *testing.T) {
-	alice, _ := keys.Generate()
-	bob, _ := keys.Generate()
+	alice, _ := Generate()
+	bob, _ := Generate()
 
 	validMsg := []byte("test message")
 	validCiphertext, _ := Encrypt(validMsg, bob.ExchangePub, alice.IdentityPriv)
@@ -100,7 +98,7 @@ func TestDecryptErrors(t *testing.T) {
 }
 
 func TestSignVerify(t *testing.T) {
-	alice, _ := keys.Generate()
+	alice, _ := Generate()
 
 	tests := []struct {
 		name    string

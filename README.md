@@ -11,14 +11,14 @@
 
 ## Features
 
-- **Key Management (`keys`)**:
+- **Key Management**:
     - **Identity Keys (Ed25519)**: Long-term keys for digital signatures and user identity.
     - **Exchange Keys (X25519)**: Keys used for ECDH key exchange and encryption.
-- **Authenticated Encryption (`box`)**:
+- **Authenticated Encryption**:
     - **Sign-then-Encrypt**: Messages are signed with the sender's Identity Key and then encrypted.
     - **XChaCha20-Poly1305**: Robust authenticated encryption with random nonces.
     - **Forward Secrecy**: Uses ephemeral keys for each message.
-- **Digital Signatures (`box`)**:
+- **Digital Signatures**:
     - **Ed25519** signing and verification.
 
 ## Installation
@@ -36,12 +36,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/tquanghuy/e2ee/keys"
+	"github.com/tquanghuy/e2ee"
 )
 
 func main() {
 	// Generate a new Identity and Exchange keypair
-	alice, err := keys.Generate()
+	alice, err := e2ee.Generate()
 	if err != nil {
 		panic(err)
 	}
@@ -58,7 +58,7 @@ You can save and load keys using standard PEM encoding:
 err := alice.Save("alice.pem")
 
 // Load keys from disk
-aliceLoaded, err := keys.Load("alice.pem")
+aliceLoaded, err := e2ee.Load("alice.pem")
 ```
 
 ### Authenticated Encryption
@@ -68,20 +68,19 @@ package main
 
 import (
 	"fmt"
-	"github.com/tquanghuy/e2ee/box"
-	"github.com/tquanghuy/e2ee/keys"
+	"github.com/tquanghuy/e2ee"
 )
 
 func main() {
-	alice, _ := keys.Generate()
-	bob, _ := keys.Generate()
+	alice, _ := e2ee.Generate()
+	bob, _ := e2ee.Generate()
 
 	// Alice encrypts a message for Bob, signing it with her Identity Key
 	message := []byte("Hello Bob, this is a secret message!")
-	ciphertext, _ := box.Encrypt(message, bob.ExchangePub, alice.IdentityPriv)
+	ciphertext, _ := e2ee.Encrypt(message, bob.ExchangePub, alice.IdentityPriv)
 
 	// Bob decrypts the message and verifies it came from Alice
-	plaintext, _ := box.Decrypt(ciphertext, bob.ExchangePriv, alice.IdentityPub)
+	plaintext, _ := e2ee.Decrypt(ciphertext, bob.ExchangePriv, alice.IdentityPub)
 	fmt.Printf("Decrypted: %s\n", plaintext)
 }
 ```
@@ -93,17 +92,16 @@ package main
 
 import (
 	"fmt"
-	"github.com/tquanghuy/e2ee/box"
-	"github.com/tquanghuy/e2ee/keys"
+	"github.com/tquanghuy/e2ee"
 )
 
 func main() {
-	alice, _ := keys.Generate()
+	alice, _ := e2ee.Generate()
 
 	message := []byte("I authorize this transaction")
-	signature := box.Sign(message, alice.IdentityPriv)
+	signature := e2ee.Sign(message, alice.IdentityPriv)
 
-	valid := box.Verify(message, signature, alice.IdentityPub)
+	valid := e2ee.Verify(message, signature, alice.IdentityPub)
 	fmt.Printf("Signature valid: %v\n", valid)
 }
 ```

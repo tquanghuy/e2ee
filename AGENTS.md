@@ -17,8 +17,7 @@ This repository `e2ee` is a Go SDK for End-to-End Encryption. It was originally 
 
 ## Project Structure
 
-- `keys/`: Key generation and management logic.
-- `box/`: Encryption, decryption, signing, and verification logic.
+- Root package (`e2ee`): All core functionality including key generation, encryption, decryption, signing, and verification.
 - `examples/`: Usage examples.
 - `doc.go`: Root package documentation.
 

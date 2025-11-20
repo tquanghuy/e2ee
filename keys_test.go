@@ -1,4 +1,4 @@
-package keys
+package e2ee
 
 import (
 	"crypto/ed25519"

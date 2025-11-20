@@ -1,4 +1,4 @@
-package box
+package e2ee
 
 import (
 	"crypto/ecdh"

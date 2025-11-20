@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- **BREAKING**: Refactored package structure from sub-packages to a flat structure.
+  - All functionality from `keys` and `box` sub-packages is now available directly in the root `e2ee` package.
+  - Import path changed from `github.com/tquanghuy/e2ee/keys` and `github.com/tquanghuy/e2ee/box` to `github.com/tquanghuy/e2ee`.
+  - Function calls changed from `keys.Generate()` and `box.Encrypt()` to `e2ee.Generate()` and `e2ee.Encrypt()`.
+- Updated all documentation and examples to reflect the new package structure.
+
 ## [v0.1.0] - 2025-11-19
 
 ### Added
