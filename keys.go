@@ -7,16 +7,24 @@ import (
 	"encoding/pem"
 	"fmt"
 	"os"
+	"time"
 )
 
 // KeyPair holds both the identity keypair (Ed25519) and the exchange keypair (X25519).
 // In a real E2EE scenario, you often have an identity key (signing) and prekeys (encryption).
 // For simplicity in this SDK, we bundle them, but keep them cryptographically separate.
+//
+// The KeyPair now supports versioned exchange keys for key rotation.
+// ExchangePriv and ExchangePub point to the currently active exchange key for backward compatibility.
 type KeyPair struct {
 	IdentityPriv ed25519.PrivateKey
 	IdentityPub  ed25519.PublicKey
-	ExchangePriv *ecdh.PrivateKey
-	ExchangePub  *ecdh.PublicKey
+	ExchangePriv *ecdh.PrivateKey // Points to active exchange key (for backward compatibility)
+	ExchangePub  *ecdh.PublicKey  // Points to active exchange public key (for backward compatibility)
+
+	// Versioned exchange keys for key rotation support
+	ExchangeKeys          []VersionedExchangeKey // All exchange key versions
+	ActiveExchangeVersion uint32                 // Current active version number
 }
 
 // Generate generates a new set of keys for a user.
@@ -34,11 +42,23 @@ func Generate() (*KeyPair, error) {
 		return nil, fmt.Errorf("failed to generate exchange key: %w", err)
 	}
 
+	// Create initial versioned exchange key (version 1)
+	initialVersion := VersionedExchangeKey{
+		Version:   1,
+		Key:       exchangePriv,
+		PublicKey: exchangePriv.PublicKey(),
+		CreatedAt: time.Now(),
+		ExpiresAt: nil,
+		Status:    KeyStatusActive,
+	}
+
 	return &KeyPair{
-		IdentityPriv: identityPriv,
-		IdentityPub:  identityPub,
-		ExchangePriv: exchangePriv,
-		ExchangePub:  exchangePriv.PublicKey(),
+		IdentityPriv:          identityPriv,
+		IdentityPub:           identityPub,
+		ExchangePriv:          exchangePriv,
+		ExchangePub:           exchangePriv.PublicKey(),
+		ExchangeKeys:          []VersionedExchangeKey{initialVersion},
+		ActiveExchangeVersion: 1,
 	}, nil
 }
 
@@ -86,9 +106,21 @@ func (kp *KeyPair) ToPEM() ([]byte, error) {
 }
 
 // FromPEM decodes a keypair from a PEM block.
+// This function supports both legacy (single key) and versioned formats.
+// Legacy keys are automatically migrated to version 1.
 func FromPEM(data []byte) (*KeyPair, error) {
 	block, _ := pem.Decode(data)
-	if block == nil || block.Type != "E2EE PRIVATE KEY" {
+	if block == nil {
+		return nil, fmt.Errorf("failed to decode PEM block")
+	}
+
+	// Check if it's a versioned format
+	if block.Type == "E2EE VERSIONED PRIVATE KEY" {
+		return fromVersionedPEM(block)
+	}
+
+	// Legacy format: "E2EE PRIVATE KEY"
+	if block.Type != "E2EE PRIVATE KEY" {
 		return nil, fmt.Errorf("failed to decode PEM block containing E2EE PRIVATE KEY")
 	}
 
@@ -108,11 +140,23 @@ func FromPEM(data []byte) (*KeyPair, error) {
 		return nil, fmt.Errorf("invalid exchange private key: %w", err)
 	}
 
+	// Migrate legacy key to versioned format (version 1)
+	initialVersion := VersionedExchangeKey{
+		Version:   1,
+		Key:       exchangePriv,
+		PublicKey: exchangePriv.PublicKey(),
+		CreatedAt: time.Now(), // Use current time for migrated keys
+		ExpiresAt: nil,
+		Status:    KeyStatusActive,
+	}
+
 	return &KeyPair{
-		IdentityPriv: identityPriv,
-		IdentityPub:  identityPub,
-		ExchangePriv: exchangePriv,
-		ExchangePub:  exchangePriv.PublicKey(),
+		IdentityPriv:          identityPriv,
+		IdentityPub:           identityPub,
+		ExchangePriv:          exchangePriv,
+		ExchangePub:           exchangePriv.PublicKey(),
+		ExchangeKeys:          []VersionedExchangeKey{initialVersion},
+		ActiveExchangeVersion: 1,
 	}, nil
 }
 

@@ -7,19 +7,29 @@
 [![Go](https://github.com/tquanghuy/e2ee/actions/workflows/go.yml/badge.svg)](https://github.com/tquanghuy/e2ee/actions/workflows/go.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-`e2ee` is a Go SDK that provides simple, secure primitives for building End-to-End Encryption applications. It is designed to be easy to use and hard to misuse, employing modern cryptographic standards.
+`e2ee` is a Go SDK that provides simple, secure primitives for building End-to-End Encryption applications. It follows the Signal Protocol's design patterns and is designed to be easy to use and hard to misuse, employing modern cryptographic standards.
+
+> **Note**: This implementation follows the [Signal Protocol](https://signal.org/docs/specifications/x3dh/) design patterns for key management and rotation.
 
 ## Features
 
-- **Key Management**:
+- **Key Management** (Signal Protocol Compatible):
     - **Identity Keys (Ed25519)**: Long-term keys for digital signatures and user identity.
-    - **Exchange Keys (X25519)**: Keys used for ECDH key exchange and encryption.
+    - **Signed Prekeys (X25519)**: Medium-term keys rotated periodically, following Signal Protocol's design.
+    - **Prekey Bundles**: Standard format for asynchronous key exchange (X3DH-compatible).
+    - **Key Versioning**: Support for multiple prekey versions with automatic version detection.
 - **Authenticated Encryption**:
     - **Sign-then-Encrypt**: Messages are signed with the sender's Identity Key and then encrypted.
     - **XChaCha20-Poly1305**: Robust authenticated encryption with random nonces.
     - **Forward Secrecy**: Uses ephemeral keys for each message.
+    - **Versioned Encryption**: Encrypt with specific prekey versions for backward compatibility.
 - **Digital Signatures**:
     - **Ed25519** signing and verification.
+- **Key Lifecycle Management**:
+    - **Prekey Rotation**: Rotate signed prekeys while maintaining identity keys (Signal Protocol pattern).
+    - **Expiration Policies**: Automatically expire old prekeys based on configurable policies.
+    - **Key Pruning**: Remove expired prekeys from storage.
+    - **Backward Compatibility**: Seamlessly migrate from legacy single-key format.
 
 ## Installation
 
@@ -106,11 +116,124 @@ func main() {
 }
 ```
 
+### Prekey Bundles (Signal Protocol Compatible)
+
+Create and verify prekey bundles for asynchronous key exchange:
+
+```go
+package main
+
+import (
+	"fmt"
+	"github.com/tquanghuy/e2ee"
+)
+
+func main() {
+	bob, _ := e2ee.Generate()
+
+	// Bob creates a prekey bundle to publish
+	bundle, _ := bob.CreatePrekeyBundle()
+	fmt.Printf("Prekey ID: %d\n", bundle.SignedPrekey.KeyID)
+
+	// Alice verifies the bundle before using it
+	err := e2ee.VerifyPrekeyBundle(bundle)
+	if err != nil {
+		panic("Invalid prekey bundle")
+	}
+	fmt.Println("Prekey bundle verified successfully")
+}
+```
+
+### Prekey Rotation (Signal Protocol Pattern)
+
+Rotate signed prekeys while maintaining your identity:
+
+```go
+package main
+
+import (
+	"fmt"
+	"github.com/tquanghuy/e2ee"
+)
+
+func main() {
+	alice, _ := e2ee.Generate()
+	bob, _ := e2ee.Generate()
+
+	// Bob rotates his signed prekey (Signal Protocol terminology)
+	err := bob.RotateSignedPrekey()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("Bob's active prekey version: %d\n", bob.ActiveExchangeVersion)
+
+	// Alice encrypts with Bob's new prekey
+	message := []byte("Hello with new prekey!")
+	ciphertext, _ := e2ee.EncryptWithVersion(message, bob.ExchangePub, bob.ActiveExchangeVersion, alice.IdentityPriv)
+
+	// Bob can decrypt with his current prekeys
+	plaintext, _ := e2ee.DecryptWithKeyPair(ciphertext, bob, alice.IdentityPub)
+	fmt.Printf("Decrypted: %s\n", plaintext)
+}
+```
+
+### Prekey Rotation Policies
+
+Manage prekey lifecycle with rotation policies:
+
+```go
+package main
+
+import (
+	"github.com/tquanghuy/e2ee"
+)
+
+func main() {
+	kp, _ := e2ee.Generate()
+
+	// Use default policy (rotate every 30 days, deprecate after 7 days)
+	// Follows Signal Protocol's recommended rotation intervals
+	policy := e2ee.DefaultPrekeyRotationPolicy()
+
+	// Check if rotation is needed
+	if kp.ShouldRotate(policy) {
+		kp.RotateSignedPrekey()
+	}
+
+	// Expire old prekeys based on policy
+	kp.ExpireOldKeys(policy)
+
+	// Remove expired prekeys from storage
+	kp.PruneExpiredKeys()
+}
+```
+
 ## Examples
 
 See the [examples/](examples/) directory for more complete usage scenarios.
 
 - [Simple Chat](examples/simple-chat/main.go): A basic demonstration of key generation, encryption, and signing.
+- [Key Rotation](examples/key-rotation/main.go): Comprehensive demonstration of prekey rotation, versioning, and lifecycle management.
+
+## Signal Protocol Compatibility
+
+This library follows the [Signal Protocol](https://signal.org/docs/specifications/x3dh/) design patterns:
+
+- **Identity Keys**: Long-term Ed25519 keys (never rotated)
+- **Signed Prekeys**: Medium-term X25519 keys (rotated periodically)
+- **Prekey Bundles**: X3DH-compatible format for asynchronous key exchange
+- **Key Signatures**: Prekeys are signed by identity keys for authentication
+
+### Terminology
+
+For compatibility with Signal Protocol terminology, this library provides aliases:
+
+- `RotateSignedPrekey()` - Rotate the signed prekey
+- `GetActiveSignedPrekey()` - Get the current active prekey
+- `PrekeyBundle` - Standard format for key distribution
+- `PrekeyRotationPolicy` - Policy for prekey lifecycle management
+
+Legacy method names (`RotateExchangeKey()`, etc.) are still supported for backward compatibility.
 
 ## License
 

@@ -13,9 +13,12 @@ Thank you for your interest in contributing to `e2ee`!
 ## Coding Standards
 
 - Follow standard Go conventions (formatting, naming).
+- Use Signal Protocol terminology in new code (prekeys, signed prekeys).
+- Maintain backward compatibility with legacy method names.
 - Ensure all tests pass: `go test ./...`.
 - Add tests for new functionality.
 - Keep the API simple and secure.
+- Document cryptographic design decisions.
 
 ## License
 
